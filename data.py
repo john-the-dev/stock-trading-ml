@@ -2,16 +2,21 @@ from alpha_vantage.timeseries import TimeSeries
 from pprint import pprint
 import json
 import argparse
-
+from os import path
+from util import *
 
 def save_dataset(symbol, time_window):
+    data_file = get_data_file(symbol, time_window)
+    if path.exists(data_file):
+        if input('Data file {} exists. Replace it? y for Yes, n for No.'.format(data_file)) != 'y': return
+
     credentials = json.load(open('creds.json', 'r'))
     api_key = credentials['av_api_key']
     print(symbol, time_window)
     ts = TimeSeries(key=api_key, output_format='pandas')
     if time_window == 'intraday':
         data, meta_data = ts.get_intraday(
-            symbol='MSFT', interval='1min', outputsize='full')
+            symbol=symbol, interval='1min', outputsize='full')
     elif time_window == 'daily':
         data, meta_data = ts.get_daily(symbol, outputsize='full')
     elif time_window == 'daily_adj':
@@ -19,7 +24,7 @@ def save_dataset(symbol, time_window):
 
     pprint(data.head(10))
 
-    data.to_csv(f'./{symbol}_{time_window}.csv')
+    data.to_csv(data_file)
 
 
 if __name__ == "__main__":

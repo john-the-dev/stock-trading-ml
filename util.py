@@ -4,11 +4,15 @@ import numpy as np
 
 history_points = 50
 
-
-def csv_to_dataset(csv_path):
-    data = pd.read_csv(csv_path)
+def csv_to_dataset(csv_path, recent = None):
+    if recent == None:
+        data = pd.read_csv(csv_path)
+    else:
+        data = pd.read_csv(csv_path, nrows=recent)
+    data = data.drop(0, axis=0) # Drop header.
+    data = data.iloc[::-1] # Reverse row order as they are date backwards.
+    dates = data[['date']]
     data = data.drop('date', axis=1)
-    data = data.drop(0, axis=0)
 
     data = data.values
 
@@ -50,7 +54,7 @@ def csv_to_dataset(csv_path):
     technical_indicators_normalised = tech_ind_scaler.fit_transform(technical_indicators)
 
     assert ohlcv_histories_normalised.shape[0] == next_day_open_values_normalised.shape[0] == technical_indicators_normalised.shape[0]
-    return ohlcv_histories_normalised, technical_indicators_normalised, next_day_open_values_normalised, next_day_open_values, y_normaliser
+    return ohlcv_histories_normalised, technical_indicators_normalised, next_day_open_values_normalised, next_day_open_values, y_normaliser, dates
 
 
 def multiple_csv_to_dataset(test_set_name):
@@ -62,9 +66,9 @@ def multiple_csv_to_dataset(test_set_name):
         if not csv_file_path == test_set_name:
             print(csv_file_path)
             if type(ohlcv_histories) == int:
-                ohlcv_histories, technical_indicators, next_day_open_values, _, _ = csv_to_dataset(csv_file_path)
+                ohlcv_histories, technical_indicators, next_day_open_values, _, _, _ = csv_to_dataset(csv_file_path)
             else:
-                a, b, c, _, _ = csv_to_dataset(csv_file_path)
+                a, b, c, _, _, _ = csv_to_dataset(csv_file_path)
                 ohlcv_histories = np.concatenate((ohlcv_histories, a), 0)
                 technical_indicators = np.concatenate((technical_indicators, b), 0)
                 next_day_open_values = np.concatenate((next_day_open_values, c), 0)
@@ -73,6 +77,17 @@ def multiple_csv_to_dataset(test_set_name):
     tech_ind_train = technical_indicators
     y_train = next_day_open_values
 
-    ohlcv_test, tech_ind_test, y_test, unscaled_y_test, y_normaliser = csv_to_dataset(test_set_name)
+    ohlcv_test, tech_ind_test, y_test, unscaled_y_test, y_normaliser, _ = csv_to_dataset(test_set_name)
 
     return ohlcv_train, tech_ind_train, y_train, ohlcv_test, tech_ind_test, y_test, unscaled_y_test, y_normaliser
+
+def get_model_file(symbol, time_window):
+    return './models/{}_{}_model.h5'.format(symbol, time_window)
+
+def get_data_file(symbol, time_window):
+    return './data/{}_{}.csv'.format(symbol, time_window)
+
+def save_predict_result(symbol, time_window, result):
+    with open('results/{}_{}.txt'.format(symbol, time_window),'a+') as f:
+        f.write(str(result))
+        f.write('\n')
