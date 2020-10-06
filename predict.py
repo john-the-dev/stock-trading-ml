@@ -19,7 +19,7 @@ def predict(symbol, time_window, recent = None, plot_chart = False):
     ohlcv_test = ohlcv_histories[n:]
     tech_ind_test = technical_indicators[n:]
     y_test = next_day_open_values[n:]
-    dates = dates[n:]
+    dates = dates[n-1:]
 
     unscaled_y_test = unscaled_y[n:]
 
@@ -30,10 +30,10 @@ def predict(symbol, time_window, recent = None, plot_chart = False):
     sells = []
     
     start = 0
-    end = -1
+    # end = -1
 
     x,decisions,i = -1,[],0
-    for ohlcv, ind in zip(ohlcv_test[start: end], tech_ind_test[start: end]):
+    for ohlcv, ind in zip(ohlcv_test[start:], tech_ind_test[start:]):
         normalised_price_today = ohlcv[-1][0]
         normalised_price_today = np.array([[normalised_price_today]]) # Normalized price.
         price_today = y_normaliser.inverse_transform(normalised_price_today) # Original price.
@@ -42,12 +42,12 @@ def predict(symbol, time_window, recent = None, plot_chart = False):
         thresh = 0.005*price_today
         if delta > thresh:
             buys.append((x, price_today[0][0]))
-            decisions.append(('buy',price_today[0][0],dates.values[i][0]))
+            decisions.append(('buy',price_today[0][0],dates[i]))
         elif delta < -thresh:
             sells.append((x, price_today[0][0]))
-            decisions.append(('sell',price_today[0][0],dates.values[i][0]))
+            decisions.append(('sell',price_today[0][0],dates[i]))
         else:
-            decisions.append(('hold',price_today[0][0],dates.values[i][0]))
+            decisions.append(('hold',price_today[0][0],dates[i]))
         x += 1
         i += 1
     print(f"buys: {len(buys)}")
@@ -92,6 +92,6 @@ def predict(symbol, time_window, recent = None, plot_chart = False):
         plt.legend(['Real', 'Predicted', 'Buy', 'Sell'])
         plt.show()
 
-    result = {'max_invest': max_invest, 'earning': ret, 'earning_rate': round(ret/max_invest,3), 'buys': len(buys), 'sells': len(sells), 'decisions': decisions, 'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    result = {'max_invest': max_invest, 'earning': ret, 'earning_rate': round(ret/max_invest,3) if max_invest > 0 else 0, 'buys': len(buys), 'sells': len(sells), 'decisions': decisions, 'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     save_predict_result(symbol, time_window, result)
     
